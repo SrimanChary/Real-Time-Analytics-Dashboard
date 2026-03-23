@@ -1,0 +1,96 @@
+<div class="login-page">
+  <div class="login-left">
+    <div class="brand">
+      <div class="brand-icon">📊</div>
+      <h1>Analytics Dashboard</h1>
+      <p>Real-time insights powered by Angular + Spring Boot</p>
+    </div>
+    <div class="feature-list">
+      <div class="feature-item">
+        <span class="feature-icon">⚡</span>
+        <div>
+          <strong>Live WebSocket updates</strong>
+          <p>KPIs and charts refresh in real time via STOMP</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">🔐</span>
+        <div>
+          <strong>JWT Authentication</strong>
+          <p>Stateless security with role-based access control</p>
+        </div>
+      </div>
+      <div class="feature-item">
+        <span class="feature-icon">📈</span>
+        <div>
+          <strong>Time-series metrics</strong>
+          <p>Paginated reports and interactive Chart.js graphs</p>
+        </div>
+      </div>
+    </div>
+    <div class="tech-stack">
+      <span>Angular 17</span><span>Spring Boot 3</span>
+      <span>PostgreSQL</span><span>Redis</span><span>WebSocket</span>
+    </div>
+  </div>
+
+  <div class="login-right">
+    <div class="login-card">
+      <h2>{{ isRegisterMode() ? 'Create account' : 'Sign in' }}</h2>
+      <p class="subtitle">{{ isRegisterMode() ? 'Join the dashboard' : 'Welcome back' }}</p>
+
+      <div *ngIf="error()" class="error-banner">
+        <mat-icon>error_outline</mat-icon>
+        {{ error() }}
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="submit()">
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Username</mat-label>
+          <input matInput formControlName="username" autocomplete="username" />
+          <mat-icon matPrefix>person</mat-icon>
+          <mat-error *ngIf="form.get('username')?.hasError('required') && form.get('username')?.touched">
+            Username is required
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field *ngIf="isRegisterMode()" appearance="outline" class="w-full">
+          <mat-label>Email</mat-label>
+          <input matInput formControlName="email" type="email" autocomplete="email" />
+          <mat-icon matPrefix>email</mat-icon>
+          <mat-error *ngIf="form.get('email')?.hasError('email') && form.get('email')?.touched">
+            Valid email required
+          </mat-error>
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" class="w-full">
+          <mat-label>Password</mat-label>
+          <input matInput formControlName="password"
+                 [type]="showPass() ? 'text' : 'password'"
+                 autocomplete="current-password" />
+          <mat-icon matPrefix>lock</mat-icon>
+          <button mat-icon-button matSuffix type="button" (click)="togglePass()">
+            <mat-icon>{{ showPass() ? 'visibility_off' : 'visibility' }}</mat-icon>
+          </button>
+        </mat-form-field>
+
+        <button mat-raised-button color="primary" class="submit-btn"
+                type="submit" [disabled]="form.invalid || loading()">
+          <mat-spinner *ngIf="loading()" diameter="20"></mat-spinner>
+          <span *ngIf="!loading()">{{ isRegisterMode() ? 'Create account' : 'Sign in' }}</span>
+        </button>
+      </form>
+
+      <button *ngIf="!isRegisterMode()" class="demo-btn" (click)="fillDemo()">
+        Fill demo credentials (admin)
+      </button>
+
+      <div class="toggle-mode">
+        {{ isRegisterMode() ? 'Already have an account?' : "Don't have an account?" }}
+        <button (click)="toggleMode()">
+          {{ isRegisterMode() ? 'Sign in' : 'Register' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

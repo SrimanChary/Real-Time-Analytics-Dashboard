@@ -1,0 +1,50 @@
+<app-navbar />
+<main class="page-content">
+  <div class="page-header">
+    <div>
+      <h1>Dashboard</h1>
+      <p>Real-time overview · Last 7 days</p>
+    </div>
+    <div class="badge badge-live">
+      <span class="live-dot"></span>
+      Live
+    </div>
+  </div>
+
+  <div *ngIf="loading()" style="padding:40px;color:#6b7280">Loading KPIs…</div>
+
+  <div *ngIf="!loading()" class="kpi-grid">
+    <div *ngFor="let card of kpis()" class="kpi-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span class="kpi-label">{{ card.label }}</span>
+        <div class="kpi-icon {{ card.iconClass }}">
+          <mat-icon>{{ card.icon }}</mat-icon>
+        </div>
+      </div>
+      <div class="kpi-value">{{ card.value }}</div>
+      <div style="display:flex;align-items:center;gap:6px;margin-top:6px">
+        <span class="kpi-delta" [class.positive]="card.positive" [class.negative]="!card.positive">
+          {{ card.delta }}
+        </span>
+        <span class="text-muted text-sm">vs last week</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-card" style="margin-top:24px">
+    <div class="section-title">
+      <mat-icon>history</mat-icon>
+      Recent Events
+    </div>
+    <div *ngIf="recentEvents().length === 0" style="padding:32px;text-align:center;color:#9ca3af">
+      Waiting for live events…
+    </div>
+    <div *ngFor="let event of recentEvents()" class="event-row">
+      <div class="event-dot"></div>
+      <div class="event-info">
+        <span class="event-type">{{ event.eventType }}</span>
+        <span class="event-time">{{ event.occurredAt | date:'HH:mm:ss' }}</span>
+      </div>
+    </div>
+  </div>
+</main>

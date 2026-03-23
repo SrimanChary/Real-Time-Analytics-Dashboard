@@ -1,0 +1,44 @@
+<nav class="navbar">
+  <!-- Brand -->
+  <div class="brand">
+    <span class="brand-icon">📊</span>
+    <span class="brand-name">AnalyticsPro</span>
+  </div>
+
+  <!-- Nav links -->
+  <div class="nav-links">
+    @for (link of navLinks; track link.path) {
+      <a [routerLink]="link.path" routerLinkActive="active" class="nav-link">
+        <mat-icon>{{ link.icon }}</mat-icon>
+        <span>{{ link.label }}</span>
+      </a>
+    }
+  </div>
+
+  <!-- Right side -->
+  <div class="nav-right">
+    <!-- WS status badge -->
+    <div class="badge {{ wsStatusClass }}" [matTooltip]="'WebSocket: ' + wsStatus">
+      <span class="live-dot"></span>
+      {{ wsStatusLabel }}
+    </div>
+
+    <!-- User menu -->
+    <button mat-icon-button [matMenuTriggerFor]="userMenu" class="user-btn">
+      <div class="avatar">{{ auth.currentUser()?.username?.charAt(0)?.toUpperCase() }}</div>
+    </button>
+
+    <mat-menu #userMenu="matMenu">
+      <div class="menu-header">
+        <p class="menu-username">{{ auth.currentUser()?.username }}</p>
+        <p class="menu-email">{{ auth.currentUser()?.email }}</p>
+        <span class="menu-role">{{ auth.currentUser()?.role }}</span>
+      </div>
+      <mat-divider />
+      <button mat-menu-item (click)="logout()">
+        <mat-icon>logout</mat-icon>
+        Sign out
+      </button>
+    </mat-menu>
+  </div>
+</nav>
