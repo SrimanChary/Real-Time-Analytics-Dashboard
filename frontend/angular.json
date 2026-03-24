@@ -55,6 +55,7 @@
               "optimization": false,
               "extractLicenses": false,
               "sourceMap": true
+              "allowedCommonJsDependencies": ["sockjs-client"]
             }
           },
           "defaultConfiguration": "production"

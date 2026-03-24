@@ -31,7 +31,7 @@ spring:
       timeout: 5000ms
 
   cache:
-    type: redis
+    type: none
     redis:
       time-to-live: 300000
 
@@ -73,3 +73,4 @@ logging:
     com.analytics: INFO
     org.springframework.security: WARN
     org.hibernate.SQL: WARN
+

@@ -7,8 +7,6 @@ import com.analytics.repository.EventRepository;
 import com.analytics.repository.MetricsRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,30 +26,38 @@ public class AnalyticsService {
     private final MetricsRepository metricsRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
-    @Cacheable(value = "kpis", key = "#from.toString() + '_' + #to.toString()")
     public KpiResponse getKpis(LocalDateTime from, LocalDateTime to) {
-        long totalEvents  = eventRepository.countByOccurredAtBetween(from, to);
-        long activeUsers  = eventRepository.countDistinctUsersBetween(from, to);
-        BigDecimal revenue = metricsRepository.sumByKeyAndPeriod("revenue", from, to);
-        BigDecimal avgVal  = metricsRepository.findAvgValueBetween(from, to);
+        try {
+            long totalEvents = eventRepository.countByOccurredAtBetween(from, to);
+            long activeUsers = eventRepository.countDistinctUsersBetween(from, to);
+            BigDecimal revenue = metricsRepository.sumByKeyAndPeriod("revenue", from, to);
+            BigDecimal avgVal  = metricsRepository.findAvgValueBetween(from, to);
+            long pageViews = eventRepository.countByOccurredAtAfter(from);
 
-        // Count page views from events
-        long pageViews = eventRepository.countByOccurredAtBetween(from, to);
-
-        return KpiResponse.builder()
-            .totalEvents(totalEvents)
-            .activeUsers(activeUsers)
-            .totalRevenue(revenue != null ? revenue : BigDecimal.ZERO)
-            .avgMetricValue(avgVal != null ? avgVal : BigDecimal.ZERO)
-            .pageViews(pageViews)
-            .period(Map.of("from", from.toString(), "to", to.toString()))
-            .build();
+            return KpiResponse.builder()
+                .totalEvents(totalEvents)
+                .activeUsers(activeUsers)
+                .totalRevenue(revenue != null ? revenue : BigDecimal.ZERO)
+                .avgMetricValue(avgVal != null ? avgVal : BigDecimal.ZERO)
+                .pageViews(pageViews)
+                .period(Map.of("from", from.toString(), "to", to.toString()))
+                .build();
+        } catch (Exception e) {
+            log.error("KPI error: {}", e.getMessage(), e);
+            return KpiResponse.builder()
+                .totalEvents(0).activeUsers(0)
+                .totalRevenue(BigDecimal.ZERO)
+                .avgMetricValue(BigDecimal.ZERO)
+                .pageViews(0)
+                .period(Map.of("from", from.toString(), "to", to.toString()))
+                .build();
+        }
     }
 
     public List<TimeSeriesPoint> getTimeSeries(
-        String metricKey, LocalDateTime from, LocalDateTime to) {
-        List<Metric> metrics = metricsRepository.findByKeyAndPeriodOrdered(metricKey, from, to);
-        return metrics.stream()
+            String metricKey, LocalDateTime from, LocalDateTime to) {
+        return metricsRepository.findByKeyAndPeriodOrdered(metricKey, from, to)
+            .stream()
             .map(m -> TimeSeriesPoint.builder()
                 .label(m.getRecordedAt().toString())
                 .value(m.getValue())
@@ -70,7 +76,6 @@ public class AnalyticsService {
     }
 
     @Transactional
-    @CacheEvict(value = "kpis", allEntries = true)
     public EventResponse ingestEvent(EventRequest request) {
         Event event = Event.builder()
             .eventType(request.eventType)
@@ -81,12 +86,8 @@ public class AnalyticsService {
 
         Event saved = eventRepository.save(event);
 
-        // Broadcast real-time notification via WebSocket
         messagingTemplate.convertAndSend(
-            "/topic/events",
-            EventNotification.from(saved));
-
-        log.debug("Event ingested and broadcasted: {}", saved.getEventType());
+            "/topic/events", EventNotification.from(saved));
 
         return EventResponse.builder()
             .id(saved.getId())
@@ -98,24 +99,20 @@ public class AnalyticsService {
 
     @Transactional
     public Metric recordMetric(MetricRequest request) {
-        Metric metric = Metric.builder()
+        return metricsRepository.save(Metric.builder()
             .metricKey(request.metricKey)
             .value(request.value)
             .tags(request.tags)
             .recordedAt(LocalDateTime.now())
-            .build();
-        return metricsRepository.save(metric);
+            .build());
     }
 
     public KpiSnapshot getLatestKpiSnapshot() {
-        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
         LocalDateTime now = LocalDateTime.now();
-
+        LocalDateTime oneHourAgo = now.minusHours(1);
         long totalEvents = eventRepository.countByOccurredAtBetween(oneHourAgo, now);
         long activeUsers = eventRepository.countDistinctUsersBetween(oneHourAgo, now);
-
-        Metric latestRevenue = metricsRepository.findLatestByKey("revenue");
-
+        Metric latestRevenue = metricsRepository.findLatestByKey("revenue", org.springframework.data.domain.PageRequest.of(0,1)).stream().findFirst().orElse(null);
         return KpiSnapshot.builder()
             .totalEvents(totalEvents)
             .activeUsers(activeUsers)
